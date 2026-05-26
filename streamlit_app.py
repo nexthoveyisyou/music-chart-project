@@ -163,6 +163,15 @@ def update_quiz_score(nickname: str):
     except Exception:
         pass
 
+def delete_quiz_score(nickname: str):
+    try:
+        with get_engine().connect() as conn:
+            conn.execute(text("DELETE FROM quiz_scores WHERE nickname = :nick"), {"nick": nickname})
+            conn.commit()
+        load_leaderboard.clear()
+    except Exception:
+        pass
+
 
 # ============================================================
 # ML 예측 헬퍼
@@ -257,15 +266,19 @@ except Exception as e:
         st.stop()
 
 # weekly_rank 최신 주차 likes → chart_data의 likes 컬럼에 반영
-if not df_weekly.empty and "likes" in df_weekly.columns and not df.empty:
-    _latest = (
+if not df_weekly.empty and "likes" in df_weekly.columns and not df.empty and "title" in df.columns:
+    _likes_map = (
         df_weekly[df_weekly["week_offset"] == 0][["title", "likes"]]
         .drop_duplicates("title")
+        .set_index("title")["likes"]
+        .to_dict()
     )
-    df = df.merge(_latest, on="title", how="left", suffixes=("", "_w"))
-    if "likes_w" in df.columns:
-        df["likes"] = df["likes_w"].combine_first(df.get("likes", pd.Series(dtype=float)))
-        df = df.drop(columns=["likes_w"])
+    if _likes_map:
+        _mapped = df["title"].map(_likes_map)
+        _has_val = _mapped.notna() & (_mapped.astype(float) > 0)
+        if "likes" not in df.columns:
+            df["likes"] = 0
+        df.loc[_has_val, "likes"] = _mapped[_has_val].astype(int)
 
 init_quiz_table()
 
@@ -839,6 +852,27 @@ elif page == "🎮 가사 퀴즈 게임":
             st.session_state.pop("last_answered_q", None)
             st.rerun()
 
+    # ── 전체 순위표 (휴지통 기능 포함) ───────────────────────
+    st.divider()
+    st.subheader("🏆 전체 순위표")
+    _lb_in_quiz = load_leaderboard()
+    if _lb_in_quiz.empty:
+        st.caption("아직 참여자가 없습니다.")
+    else:
+        for _qi, _qrow in enumerate(_lb_in_quiz.itertuples(index=False)):
+            _medal = ("🥇" if _qi == 0 else "🥈" if _qi == 1 else "🥉" if _qi == 2 else f"{_qi+1}.")
+            _qcol_name, _qcol_btn = st.columns([5, 1])
+            with _qcol_name:
+                st.write(f"{_medal} **{_qrow.nickname}** — {int(_qrow.score)}점")
+            with _qcol_btn:
+                if _qrow.nickname == nickname:
+                    if st.button("🗑️", key=f"del_score_{_qi}", help="내 점수 삭제"):
+                        delete_quiz_score(nickname)
+                        st.session_state.quiz_score = 0
+                        st.session_state.quiz_total = 0
+                        st.session_state.pop("last_answered_q", None)
+                        st.rerun()
+
 
 # ============================================================
 # 📋 전체 데이터
@@ -855,17 +889,6 @@ elif page == "📋 전체 데이터":
     drop_cols = [c for c in ["rank_change", "like_count"] if c in filtered.columns]
     if drop_cols:
         filtered = filtered.drop(columns=drop_cols)
-
-    # weekly_rank 최신 주차(week_offset=0) likes 반영
-    if not df_weekly.empty and "likes" in df_weekly.columns:
-        latest_likes = (
-            df_weekly[df_weekly["week_offset"] == 0][["title", "likes"]]
-            .drop_duplicates("title")
-        )
-        filtered = filtered.merge(latest_likes, on="title", how="left", suffixes=("", "_w"))
-        if "likes_w" in filtered.columns:
-            filtered["likes"] = filtered["likes_w"].combine_first(filtered.get("likes", pd.Series(dtype=float)))
-            filtered = filtered.drop(columns=["likes_w"])
 
     st.write(f"총 {len(filtered)}건")
     st.dataframe(filtered, use_container_width=True, hide_index=True)
