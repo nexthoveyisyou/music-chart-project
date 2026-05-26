@@ -280,6 +280,19 @@ if not df_weekly.empty and "likes" in df_weekly.columns and not df.empty and "ti
             df["likes"] = 0
         df.loc[_has_val, "likes"] = _mapped[_has_val].astype(int)
 
+# genre_cache.json → chart_data의 genre='overall' 곡에 실제 장르 반영
+if not df.empty and "song_id" in df.columns and "genre" in df.columns:
+    _gcache = {}
+    _gcache_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "genre_cache.json")
+    if os.path.exists(_gcache_path):
+        import json as _json
+        with open(_gcache_path, "r", encoding="utf-8") as _f:
+            _gcache = _json.load(_f)
+    if _gcache:
+        _genre_mapped = df["song_id"].astype(str).map(_gcache)
+        _fix_mask = (df["genre"] == "overall") & _genre_mapped.notna()
+        df.loc[_fix_mask, "genre"] = _genre_mapped[_fix_mask]
+
 init_quiz_table()
 
 # ============================================================
@@ -324,12 +337,23 @@ if st.sidebar.button("🗑️ 캐시 초기화 (즉시 갱신)"):
 st.sidebar.divider()
 st.sidebar.subheader("🏆 퀴즈 순위표 TOP 10")
 _lb = load_leaderboard()
+_sb_nickname = st.session_state.get("quiz_nickname", "")
 if _lb.empty:
     st.sidebar.caption("아직 참여자가 없습니다.")
 else:
     for _i, _row in enumerate(_lb.itertuples(index=False)):
         _medal = ("🥇" if _i == 0 else "🥈" if _i == 1 else "🥉" if _i == 2 else f"{_i+1}.")
-        st.sidebar.write(f"{_medal} **{_row.nickname}** — {int(_row.score)}점")
+        if _sb_nickname and _row.nickname == _sb_nickname:
+            _sb_c1, _sb_c2 = st.sidebar.columns([4, 1])
+            _sb_c1.write(f"{_medal} **{_row.nickname}** — {int(_row.score)}점")
+            if _sb_c2.button("🗑️", key=f"sb_del_{_i}", help="내 점수 삭제"):
+                delete_quiz_score(_sb_nickname)
+                st.session_state.quiz_score = 0
+                st.session_state.quiz_total = 0
+                st.session_state.pop("last_answered_q", None)
+                st.rerun()
+        else:
+            st.sidebar.write(f"{_medal} **{_row.nickname}** — {int(_row.score)}점")
 
 
 # ============================================================

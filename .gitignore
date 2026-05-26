@@ -6,7 +6,6 @@ music_chart_*.csv
 music_chart_*.xlsx
 
 # 캐시
-genre_cache.json
 __pycache__/
 *.pyc
 *.pyo
