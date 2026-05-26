@@ -807,6 +807,16 @@ elif page == "🎮 가사 퀴즈 게임":
         {"lyrics": "내 마음속에 불꽃이 타오르는 것 같아", "artist": "비비(BIBI)", "title": "밤양갱"},
     ]
 
+    # YouTube video_id 맵 (title → video_id)
+    _yt_vid_map = {}
+    if not df_yt.empty and "title" in df_yt.columns and "video_id" in df_yt.columns:
+        _yt_vid_map = (
+            df_yt[df_yt["video_id"].notna() & (df_yt["video_id"] != "")]
+            .drop_duplicates("title")
+            .set_index("title")["video_id"]
+            .to_dict()
+        )
+
     if st.button("🎲 새 문제 출제", key="lyrics_new"):
         q = random.choice(lyrics_db)
         wrong = [s["title"] for s in lyrics_db if s["title"] != q["title"]]
@@ -819,8 +829,8 @@ elif page == "🎮 가사 퀴즈 게임":
             "answer": q["title"],
             "choices": choices
         }
-        # 이전 정답 여부 초기화
         st.session_state.pop("last_correct", None)
+        st.session_state.pop("show_music_hint", None)
 
     if "lyrics_q" in st.session_state and st.session_state.lyrics_q:
         lq = st.session_state.lyrics_q
@@ -833,6 +843,30 @@ elif page == "🎮 가사 퀴즈 게임":
 > *"{lq['lyrics']}"*
 ---
 """)
+
+        # ── 음악 힌트 (YouTube 오디오) ────────────────────────
+        _vid = _yt_vid_map.get(lq["answer"], "")
+        if _vid:
+            _hint_start = random.randint(25, 55)
+            if st.button("🎵 음악 힌트 듣기", key="btn_music_hint"):
+                st.session_state.show_music_hint = not st.session_state.get("show_music_hint", False)
+            if st.session_state.get("show_music_hint", False):
+                st.components.v1.html(
+                    f"""
+                    <div style="margin:6px 0 10px 0;">
+                      <iframe
+                        width="100%" height="68"
+                        src="https://www.youtube.com/embed/{_vid}?autoplay=1&start={_hint_start}&controls=1&modestbranding=1&rel=0&fs=0&iv_load_policy=3"
+                        frameborder="0"
+                        allow="autoplay; encrypted-media"
+                        style="border-radius:8px;">
+                      </iframe>
+                    </div>
+                    """,
+                    height=80,
+                )
+        else:
+            st.caption("🎵 이 곡은 YouTube 데이터가 없어 음악 힌트를 제공할 수 없습니다.")
 
         choice = st.radio("이 곡의 제목은?", lq["choices"], key="lyrics_choice")
 
