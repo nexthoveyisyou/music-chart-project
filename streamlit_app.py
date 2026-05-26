@@ -766,7 +766,7 @@ elif page == "🎮 가사 퀴즈 게임":
 
     # ── 가사 데이터 ──────────────────────────────────────────
     lyrics_db = [
-        {"lyrics": "너의 눈빛이 나를 감싸면 세상이 다 멈추는 것 같아", "artist": "CORTIS (코르티스)", "title": "REDRED"},
+        {"lyrics": "팔랑귀 팔랑귀 (that's red-red) 눈치나 살피기 (that's red-red) 도가니 사리기 (that's red-red) 넘어가 울타리 green green", "artist": "CORTIS (코르티스)", "title": "REDRED"},
         {"lyrics": "It's me 내가 바로 네가 찾던 사람", "artist": "아일릿(ILLIT)", "title": "It's Me"},
         {"lyrics": "소문의 낙원 그곳에 가면 모든 게 달라질 거야", "artist": "AKMU (악뮤)", "title": "소문의 낙원"},
         {"lyrics": "갑자기 너란 사람이 다가와 내 세상을 바꿔놨어", "artist": "아이오아이 (I.O.I)", "title": "갑자기"},
