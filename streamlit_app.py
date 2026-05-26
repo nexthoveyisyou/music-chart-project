@@ -67,38 +67,50 @@ def _fix_week_offset(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _read_weekly_csv(path: str) -> pd.DataFrame:
+    """escapechar 시도 → 실패시 on_bad_lines='skip' 재시도"""
+    for kwargs in [
+        {"encoding": "utf-8-sig", "escapechar": "\\"},
+        {"encoding": "utf-8-sig", "on_bad_lines": "skip"},
+        {"encoding": "utf-8",     "on_bad_lines": "skip"},
+        {"encoding": "latin-1",   "on_bad_lines": "skip"},
+    ]:
+        try:
+            df = pd.read_csv(path, **kwargs)
+            if not df.empty and "week_label" in df.columns:
+                return df
+        except Exception:
+            continue
+    return pd.DataFrame()
+
+
 @st.cache_data(ttl=300)
 def load_weekly():
-    df_db = pd.DataFrame()
-    try:
-        df_db = pd.read_sql(
-            "SELECT * FROM weekly_rank ORDER BY week_offset, `rank`",
-            get_engine()
-        )
-        df_db = _fix_week_offset(df_db)
-    except Exception:
-        pass
-
-    # CSV 우선 경로 목록 (더 많은 주 데이터를 가진 CSV 우선)
+    # ── 1. CSV 먼저 시도 (프로젝트 폴더 → Desktop → 상대경로) ──
     csv_paths = [
-        r"C:\Users\KDT-008\Desktop\weekly_rank.csv",
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "weekly_rank.csv"),
         "weekly_rank.csv",
+        r"C:\Users\KDT-008\Desktop\weekly_rank.csv",
         os.path.join("..", "weekly_rank.csv"),
     ]
     for path in csv_paths:
         try:
             if os.path.exists(path):
-                df_csv = pd.read_csv(path, encoding="utf-8-sig", escapechar="\\")
-                df_csv = _fix_week_offset(df_csv)
-                db_weeks = df_db["week_offset"].nunique() if not df_db.empty else 0
-                csv_weeks = df_csv["week_offset"].nunique() if not df_csv.empty else 0
-                if csv_weeks > db_weeks:
+                df_csv = _fix_week_offset(_read_weekly_csv(path))
+                if df_csv["week_offset"].nunique() >= 2:
                     return df_csv
         except Exception:
             pass
 
-    return df_db if not df_db.empty else pd.DataFrame()
+    # ── 2. DB 폴백 ──────────────────────────────────────────────
+    try:
+        df_db = pd.read_sql(
+            "SELECT * FROM weekly_rank ORDER BY week_offset, `rank`",
+            get_engine()
+        )
+        return _fix_week_offset(df_db)
+    except Exception:
+        return pd.DataFrame()
 
 @st.cache_data(ttl=300)
 def load_youtube():
