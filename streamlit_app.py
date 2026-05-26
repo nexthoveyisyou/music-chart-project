@@ -256,6 +256,17 @@ except Exception as e:
         st.error("❌ 데이터 없음. python music_chart_crawler.py를 먼저 실행하세요!")
         st.stop()
 
+# weekly_rank 최신 주차 likes → chart_data의 likes 컬럼에 반영
+if not df_weekly.empty and "likes" in df_weekly.columns and not df.empty:
+    _latest = (
+        df_weekly[df_weekly["week_offset"] == 0][["title", "likes"]]
+        .drop_duplicates("title")
+    )
+    df = df.merge(_latest, on="title", how="left", suffixes=("", "_w"))
+    if "likes_w" in df.columns:
+        df["likes"] = df["likes_w"].combine_first(df.get("likes", pd.Series(dtype=float)))
+        df = df.drop(columns=["likes_w"])
+
 init_quiz_table()
 
 # ============================================================
@@ -838,7 +849,24 @@ elif page == "📋 전체 데이터":
     src_filter = st.multiselect("사이트", ["melon", "bugs"], default=["melon", "bugs"])
     rng = st.slider("순위 범위", 1, 100, (1, 100))
 
-    filtered = df[(df["source"].isin(src_filter)) & (df["rank"] >= rng[0]) & (df["rank"] <= rng[1])]
+    filtered = df[(df["source"].isin(src_filter)) & (df["rank"] >= rng[0]) & (df["rank"] <= rng[1])].copy()
+
+    # 항상 None인 컬럼 제거
+    drop_cols = [c for c in ["rank_change", "like_count"] if c in filtered.columns]
+    if drop_cols:
+        filtered = filtered.drop(columns=drop_cols)
+
+    # weekly_rank 최신 주차(week_offset=0) likes 반영
+    if not df_weekly.empty and "likes" in df_weekly.columns:
+        latest_likes = (
+            df_weekly[df_weekly["week_offset"] == 0][["title", "likes"]]
+            .drop_duplicates("title")
+        )
+        filtered = filtered.merge(latest_likes, on="title", how="left", suffixes=("", "_w"))
+        if "likes_w" in filtered.columns:
+            filtered["likes"] = filtered["likes_w"].combine_first(filtered.get("likes", pd.Series(dtype=float)))
+            filtered = filtered.drop(columns=["likes_w"])
+
     st.write(f"총 {len(filtered)}건")
     st.dataframe(filtered, use_container_width=True, hide_index=True)
 
