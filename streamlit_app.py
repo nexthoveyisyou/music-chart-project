@@ -371,17 +371,17 @@ if page == "📊 차트 대시보드":
 
     st.divider()
 
-    # 사이트별 TOP 10
-    st.subheader("🏆 사이트별 TOP 10")
+    # 사이트별 TOP 100
+    st.subheader("🏆 사이트별 TOP 100")
     tab1, tab2 = st.tabs(["🍈 멜론", "🐛 벅스"])
     for tab, src in [(tab1, "melon"), (tab2, "bugs")]:
         with tab:
-            top10 = df[(df["source"] == src) & (df["rank"] <= 10)].sort_values("rank")
-            if not top10.empty:
-                display = top10[["rank", "title", "artist", "album"]].copy()
+            top100 = df[df["source"] == src].sort_values("rank")
+            if not top100.empty:
+                display = top100[["rank", "title", "artist", "album"]].copy()
                 display.columns = ["순위", "곡명", "가수", "앨범"]
                 display["순위"] = display["순위"].apply(lambda r: f"🥇 {r}" if r == 1 else f"🥈 {r}" if r == 2 else f"🥉 {r}" if r == 3 else f"  {r}")
-                st.dataframe(display, use_container_width=True, hide_index=True)
+                st.dataframe(display, use_container_width=True, hide_index=True, height=500)
 
     # 2사 공통곡
     st.subheader("🔍 멜론 & 벅스 공통 진입곡")
@@ -395,6 +395,10 @@ if page == "📊 차트 대시보드":
     c1.metric("🎯 공통", f"{len(common)}곡")
     c2.metric("🍈 멜론만", f"{len(only_melon)}곡")
     c3.metric("🐛 벅스만", f"{len(only_bugs)}곡")
+    st.caption(
+        "멜론·벅스 두 차트에 동시 진입한 곡은 특정 팬층이 아닌 **폭넓은 청취층**을 확보한 곡입니다. "
+        "반대로 한 플랫폼에만 등장하는 곡은 해당 플랫폼 이용자 성향(연령대·장르 선호)에 맞는 곡일 가능성이 높습니다."
+    )
 
     # 아티스트 출현 빈도
     st.subheader("🎤 아티스트별 차트 진입 횟수")
@@ -402,6 +406,10 @@ if page == "📊 차트 대시보드":
     fig2 = px.bar(ac, x="count", y="artist", orientation="h", color="count", color_continuous_scale="sunset")
     fig2.update_layout(yaxis=dict(autorange="reversed"), height=500)
     st.plotly_chart(fig2, use_container_width=True)
+    st.caption(
+        "멜론·벅스 차트를 합산한 수치입니다. 횟수가 2 이상이면 두 플랫폼 모두에 진입했거나 "
+        "여러 곡이 동시에 차트에 올라있다는 의미로, **크로스플랫폼 영향력**이 큰 아티스트를 가늠할 수 있습니다."
+    )
 
 
 # ============================================================
@@ -515,6 +523,11 @@ elif page == "📈 4주 순위 예측":
         )
         fig.add_vline(x=0.5, line_dash="dot", line_color="red", annotation_text="← 실제 | 예측 →")
         st.plotly_chart(fig, use_container_width=True)
+        st.caption(
+            "점선(🔮)은 과거 주간 순위 추세를 선형 회귀로 연장한 예측값입니다. "
+            "주간 데이터가 부족할 경우 월별 히스토리 또는 순위 구간별 감쇠 모델을 사용하며, "
+            "**급격한 이슈·컴백·음방 출연 등 외부 요인은 반영되지 않으므로** 참고용으로만 활용하세요."
+        )
 
         # 예측 요약
         st.subheader("📋 예측 요약")
@@ -619,11 +632,16 @@ elif page == "🔥 팬덤 vs 대중성":
         - **좋아요 多 + 순위 低** → 💪 팬덤 화력으로 유지되는 곡
         """)
 
-        st.subheader("📊 YouTube 통계 상세")
-        yt_display = df_yt[["rank", "title", "artist", "view_count", "like_count", "comment_count"]].copy()
-        yt_display.columns = ["순위", "곡명", "가수", "조회수", "좋아요", "댓글"]
+        st.subheader("📊 YouTube 통계 상세 (멜론 TOP 100 기준)")
+        melon_all = df[df["source"] == "melon"][["rank", "title", "artist"]].sort_values("rank")
+        yt_cols = df_yt[["title", "view_count", "like_count", "comment_count"]].drop_duplicates("title")
+        yt_merged = melon_all.merge(yt_cols, on="title", how="left")
+        yt_merged[["view_count", "like_count", "comment_count"]] = (
+            yt_merged[["view_count", "like_count", "comment_count"]].fillna(0).astype(int)
+        )
+        yt_merged.columns = ["순위", "곡명", "가수", "조회수", "좋아요", "댓글"]
         st.dataframe(
-            yt_display.style
+            yt_merged.style
                 .format({"조회수": "{:,.0f}", "좋아요": "{:,.0f}", "댓글": "{:,.0f}"})
                 .background_gradient(subset=["조회수"], cmap="Blues")
                 .background_gradient(subset=["좋아요"], cmap="Reds")
@@ -632,6 +650,12 @@ elif page == "🔥 팬덤 vs 대중성":
                 .set_properties(**{"font-weight": "bold"}, subset=["순위", "곡명"]),
             use_container_width=True,
             hide_index=True,
+            height=600,
+        )
+        st.caption(
+            "YouTube 통계는 멜론 TOP 10 기준으로 수집됩니다. "
+            "11위 이하 곡은 YouTube 데이터 없이 멜론 순위만 표시됩니다. "
+            "**조회수가 높아도 좋아요 비율이 낮은 곡**은 알고리즘 추천으로 유입된 비팬 시청이 많은 경우일 수 있습니다."
         )
 
 
