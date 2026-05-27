@@ -813,25 +813,36 @@ elif page == "🎮 가사 퀴즈 게임":
         st.stop()
 
     nickname = st.session_state.quiz_nickname
-    st.write(f"가사 일부와 가수 이름을 보고 **곡 제목**을 맞춰보세요!  참여자: **{nickname}**")
+    st.write(f"가사와 가수 초성을 보고 **가수와 곡 제목**을 맞춰보세요!  참여자: **{nickname}**")
+
+    # ── 초성 추출 유틸 ────────────────────────────────────────
+    def _get_chosung(text):
+        CHOSUNG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
+        import re
+        # 괄호 안 한글 우선 추출
+        m = re.search(r'[((]([가-힣]+)[))]', text)
+        korean = m.group(1) if m else re.sub(r'[^가-힣]', '', text)
+        if not korean:
+            return ' '.join(w[0].upper() for w in text.split() if w)
+        return ' '.join(CHOSUNG[(ord(c) - 0xAC00) // 588] for c in korean)
 
     # ── 가사 데이터 ──────────────────────────────────────────
     lyrics_db = [
-        {"lyrics": "팔랑귀 팔랑귀 (that's red-red) 눈치나 살피기 (that's red-red) 도가니 사리기 (that's red-red) 넘어가 울타리 green green", "artist": "CORTIS (코르티스)", "title": "REDRED"},
-        {"lyrics": "It's me 내가 바로 네가 찾던 사람", "artist": "아일릿(ILLIT)", "title": "It's Me"},
-        {"lyrics": "소문의 낙원 그곳에 가면 모든 게 달라질 거야", "artist": "AKMU (악뮤)", "title": "소문의 낙원"},
-        {"lyrics": "갑자기 너란 사람이 다가와 내 세상을 바꿔놨어", "artist": "아이오아이 (I.O.I)", "title": "갑자기"},
-        {"lyrics": "기쁨 슬픔 아름다운 마음 모두 다 안아줄게", "artist": "AKMU (악뮤)", "title": "기쁨, 슬픔, 아름다운 마음"},
-        {"lyrics": "캐치 캐치 너의 마음을 캐치해볼래", "artist": "YENA (최예나)", "title": "캐치 캐치"},
-        {"lyrics": "사랑하게 될 거야 분명히 그렇게 될 거야", "artist": "한로로", "title": "사랑하게 될 거야"},
-        {"lyrics": "Heavy serenade 밤하늘에 울려퍼지는 노래", "artist": "NMIXX", "title": "Heavy Serenade"},
-        {"lyrics": "Bang bang 터뜨려 지금 이 순간을 즐겨", "artist": "IVE (아이브)", "title": "BANG BANG"},
-        {"lyrics": "Rude 무례하게 들릴 수 있지만 솔직히 말할게", "artist": "Hearts2Hearts (하츠투하츠)", "title": "RUDE!"},
-        {"lyrics": "네 곁에 있으면 나는 행복해 아무것도 필요 없어", "artist": "뉴진스(NewJeans)", "title": "Supernatural"},
-        {"lyrics": "하늘을 달리는 기분이야 너와 함께라면", "artist": "에스파(aespa)", "title": "Whiplash"},
-        {"lyrics": "달려가 꿈을 향해 멈추지 말고 지금 바로", "artist": "르세라핌(LE SSERAFIM)", "title": "CRAZY"},
-        {"lyrics": "오늘도 너를 떠올리며 하루를 보내고 있어", "artist": "임영웅", "title": "모래 알갱이"},
-        {"lyrics": "내 마음속에 불꽃이 타오르는 것 같아", "artist": "비비(BIBI)", "title": "밤양갱"},
+        {"lyrics": "팔랑귀 팔랑귀 (that's red-red) 눈치나 살피기 (that's red-red)", "artist": "CORTIS (코르티스)", "title": "REDRED"},
+        {"lyrics": "Who's your bias? I'm your bias!", "artist": "아일릿(ILLIT)", "title": "It's Me"},
+        {"lyrics": "지치고 병든 나그네여 우 외톨이 나그네여", "artist": "AKMU (악뮤)", "title": "소문의 낙원"},
+        {"lyrics": "Till the morning 그렇게 아침이 밝아오네 잊으려 누웠는데", "artist": "아이오아이 (I.O.I)", "title": "갑자기"},
+        {"lyrics": "햇빛 뒤에 그늘이 있는 건 사랑스러운 모습이야", "artist": "AKMU (악뮤)", "title": "기쁨, 슬픔, 아름다운 마음"},
+        {"lyrics": "Oh oh 살짝쿵 Oh oh 느낌 왔지", "artist": "YENA (최예나)", "title": "캐치 캐치"},
+        {"lyrics": "아 뭐가 그리 샘이 났길래 그토록 휘몰아쳤던가", "artist": "한로로", "title": "사랑하게 될 거야"},
+        {"lyrics": "커진 심장 소릴 들어봐 영원히 기억될 이 순간", "artist": "NMIXX", "title": "Heavy Serenade"},
+        {"lyrics": "I don't give a 쉿! What you say", "artist": "IVE (아이브)", "title": "BANG BANG"},
+        {"lyrics": "You can't make me act right", "artist": "Hearts2Hearts (하츠투하츠)", "title": "RUDE!"},
+        {"lyrics": "I don't know what we've done 되돌아가긴 싫어 もう知っている", "artist": "뉴진스(NewJeans)", "title": "Supernatural"},
+        {"lyrics": "집중해 좀 더 Think fast 이유 넌 이해 못 해", "artist": "에스파(aespa)", "title": "Whiplash"},
+        {"lyrics": "넌 CPR같이 손대면 like 피카츄 백만 볼트 전기 it's pumping", "artist": "르세라핌(LE SSERAFIM)", "title": "CRAZY"},
+        {"lyrics": "그대 이 모래에 작은 발자국을 내어요 깊게 패이지 않을 만큼 가볍게", "artist": "임영웅", "title": "모래 알갱이"},
+        {"lyrics": "떠나는 길에 네가 내게 말했지 너는 바라는 게 너무나 많아", "artist": "비비(BIBI)", "title": "밤양갱"},
     ]
 
     # YouTube video_id 맵 (title → video_id)
@@ -846,14 +857,16 @@ elif page == "🎮 가사 퀴즈 게임":
 
     if st.button("🎲 새 문제 출제", key="lyrics_new"):
         q = random.choice(lyrics_db)
-        wrong = [s["title"] for s in lyrics_db if s["title"] != q["title"]]
-        wrong_choices = random.sample(wrong, min(3, len(wrong)))
-        choices = [q["title"]] + wrong_choices
+        correct = f"{q['artist']} - {q['title']}"
+        wrong_pool = [s for s in lyrics_db if s["title"] != q["title"]]
+        wrong_choices = [f"{s['artist']} - {s['title']}" for s in random.sample(wrong_pool, min(3, len(wrong_pool)))]
+        choices = [correct] + wrong_choices
         random.shuffle(choices)
         st.session_state.lyrics_q = {
             "lyrics": q["lyrics"],
-            "artist": q["artist"],
-            "answer": q["title"],
+            "artist_chosung": _get_chosung(q["artist"]),
+            "answer_title": q["title"],
+            "answer": correct,
             "choices": choices
         }
         st.session_state.pop("last_correct", None)
@@ -864,7 +877,7 @@ elif page == "🎮 가사 퀴즈 게임":
 
         st.markdown(f"""
 ---
-### 🎤 가수: **{lq['artist']}**
+### 🎤 가수 초성: **{lq['artist_chosung']}**
 
 ### 📝 가사:
 > *"{lq['lyrics']}"*
@@ -872,7 +885,7 @@ elif page == "🎮 가사 퀴즈 게임":
 """)
 
         # ── 음악 힌트 (YouTube 오디오) ────────────────────────
-        _vid = _yt_vid_map.get(lq["answer"], "")
+        _vid = _yt_vid_map.get(lq["answer_title"], "")
         if _vid:
             _hint_start = random.randint(25, 55)
             if st.button("🎵 음악 힌트 듣기", key="btn_music_hint"):
@@ -880,14 +893,20 @@ elif page == "🎮 가사 퀴즈 게임":
             if st.session_state.get("show_music_hint", False):
                 st.components.v1.html(
                     f"""
-                    <div style="margin:6px 0 10px 0;">
+                    <div style="position:relative; margin:6px 0 10px 0; background:#000; border-radius:8px; overflow:hidden;">
                       <iframe
                         width="100%" height="68"
                         src="https://www.youtube.com/embed/{_vid}?autoplay=1&start={_hint_start}&controls=1&modestbranding=1&rel=0&fs=0&iv_load_policy=3"
                         frameborder="0"
                         allow="autoplay; encrypted-media"
-                        style="border-radius:8px;">
+                        style="display:block; border-radius:8px;">
                       </iframe>
+                      <div style="
+                        position:absolute; top:0; left:0;
+                        width:50%; height:100%;
+                        background:linear-gradient(to right, #000 70%, transparent 100%);
+                        z-index:10; pointer-events:none;">
+                      </div>
                     </div>
                     """,
                     height=80,
@@ -895,7 +914,7 @@ elif page == "🎮 가사 퀴즈 게임":
         else:
             st.caption("🎵 이 곡은 YouTube 데이터가 없어 음악 힌트를 제공할 수 없습니다.")
 
-        choice = st.radio("이 곡의 제목은?", lq["choices"], key="lyrics_choice")
+        choice = st.radio("가수와 곡 제목은?", lq["choices"], key="lyrics_choice")
 
         if st.button("정답 확인", key="lyrics_check"):
             # 같은 문제를 중복 채점하지 않기 위해 answered 플래그 활용
