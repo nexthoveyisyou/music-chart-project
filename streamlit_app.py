@@ -810,6 +810,49 @@ elif page == "🎵 장르·계절 분류":
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("해당 월 데이터가 없습니다.")
+
+            # ── 계절별 통합 파이차트 ──────────────────────────
+            st.markdown("---")
+            st.subheader("🌸 계절별 장르 비율 (파이차트)")
+
+            def _month_to_season(m):
+                m = int(m)
+                if m in (3, 4, 5):   return "봄 🌸"
+                if m in (6, 7, 8):   return "여름 ☀️"
+                if m in (9, 10, 11): return "가을 🍂"
+                return "겨울 ❄️"
+
+            df_s = df_m.copy()
+            df_s["month"] = df_s["year_month"].astype(str).str[4:6].astype(int)
+            df_s["season"] = df_s["month"].apply(_month_to_season)
+
+            season_order = ["봄 🌸", "여름 ☀️", "가을 🍂", "겨울 ❄️"]
+            from plotly.subplots import make_subplots
+
+            fig_s = make_subplots(
+                rows=2, cols=2,
+                subplot_titles=season_order,
+                specs=[[{"type": "pie"}, {"type": "pie"}],
+                       [{"type": "pie"}, {"type": "pie"}]]
+            )
+            positions = [(1,1),(1,2),(2,1),(2,2)]
+            for i, season in enumerate(season_order):
+                df_season = (df_s[df_s["season"] == season]
+                             .groupby("genre").size().reset_index(name="count"))
+                r, c = positions[i]
+                fig_s.add_trace(
+                    go.Pie(labels=df_season["genre"], values=df_season["count"],
+                           hole=0.3, textinfo="percent+label",
+                           textposition="inside", showlegend=(i == 0)),
+                    row=r, col=c
+                )
+            fig_s.update_layout(height=700, title_text="계절별 장르 분포 (전체 기간 합산)")
+            st.plotly_chart(fig_s, use_container_width=True)
+            st.caption(
+                "계절마다 선호 장르가 다를 수 있습니다. "
+                "예를 들어 여름에 댄스·팝 비중이 높아지고, 겨울에 발라드 비중이 높아지는 패턴이 나타난다면 "
+                "계절이 음원 소비 취향에 영향을 준다는 근거가 됩니다."
+            )
         else:
             pass
 
