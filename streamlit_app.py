@@ -115,7 +115,11 @@ def load_weekly():
 @st.cache_data(ttl=300)
 def load_youtube():
     try:
-        return pd.read_sql("SELECT * FROM youtube_stats WHERE crawled_at=(SELECT MAX(crawled_at) FROM youtube_stats)", get_engine())
+        df = pd.read_sql(
+            "SELECT * FROM youtube_stats ORDER BY `rank`, id DESC",
+            get_engine()
+        )
+        return df.drop_duplicates(subset=["rank"], keep="first")
     except:
         return pd.DataFrame()
 
@@ -634,8 +638,8 @@ elif page == "🔥 팬덤 vs 대중성":
 
         st.subheader("📊 YouTube 통계 상세 (멜론 TOP 100 기준)")
         melon_all = df[df["source"] == "melon"][["rank", "title", "artist"]].sort_values("rank")
-        yt_cols = df_yt[["title", "view_count", "like_count", "comment_count"]].drop_duplicates("title")
-        yt_merged = melon_all.merge(yt_cols, on="title", how="left")
+        yt_cols = df_yt[["rank", "view_count", "like_count", "comment_count"]].drop_duplicates("rank")
+        yt_merged = melon_all.merge(yt_cols, on="rank", how="left")
         yt_merged[["view_count", "like_count", "comment_count"]] = (
             yt_merged[["view_count", "like_count", "comment_count"]].fillna(0).astype(int)
         )
