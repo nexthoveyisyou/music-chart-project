@@ -738,12 +738,11 @@ elif page == "🎵 장르·계절 분류":
         "📅 월별 장르 비율":     "fig1_monthly_genre_distribution.png",
         "🌸 계절별 장르 비율":   ("fig2_season_genre_heatmap.png",
                                   "fig5_season_top_bottom_genres.png"),
-        "📊 계절×장르 히트맵":   "fig3_season_genre_r_heatmap.png",
         "🔗 Pearson 상관계수":   "fig4_genre_monthly_trend_r.png",
     }
     _WARN = "PNG 파일이 없습니다. `python music_chart_crawler.py`를 실행하면 자동 생성됩니다."
 
-    tab1, tab2, tab3, tab4 = st.tabs(list(_FIG_FILES.keys()))
+    tab1, tab2, tab3 = st.tabs(list(_FIG_FILES.keys()))
 
     def _show_png(tab, key):
         with tab:
@@ -787,8 +786,7 @@ elif page == "🎵 장르·계절 분류":
             pass
 
     _show_png(tab2, "🌸 계절별 장르 비율")
-    _show_png(tab3, "📊 계절×장르 히트맵")
-    _show_png(tab4, "🔗 Pearson 상관계수")
+    _show_png(tab3, "🔗 Pearson 상관계수")
 
 
 # ============================================================
