@@ -861,6 +861,28 @@ elif page == "🎵 장르·계절 분류":
 
     _show_png(tab3, "🔗 Pearson 상관계수")
 
+    with tab3:
+        st.markdown("---")
+        st.markdown(
+            """
+**📖 Pearson 상관계수 해석 방법**
+
+Pearson 상관계수(r)는 두 변수 간의 **선형 관계 강도**를 −1 ~ +1 사이 값으로 나타냅니다.
+
+| r 값 범위 | 해석 |
+|---|---|
+| 0.7 ~ 1.0 | 강한 양의 상관 — 한 쪽이 늘면 다른 쪽도 확실히 늘어남 |
+| 0.3 ~ 0.7 | 중간 양의 상관 — 어느 정도 함께 움직이는 경향 |
+| −0.3 ~ 0.3 | 거의 상관 없음 — 두 변수가 독립적으로 움직임 |
+| −0.7 ~ −0.3 | 중간 음의 상관 — 한 쪽이 늘면 다른 쪽은 줄어드는 경향 |
+| −1.0 ~ −0.7 | 강한 음의 상관 — 한 쪽이 늘면 다른 쪽은 확실히 줄어듦 |
+
+위 그래프에서 **각 장르의 r 값**을 확인하면, 특정 장르가 월이 지날수록 꾸준히 증가/감소하는지 파악할 수 있습니다.
+예를 들어 발라드의 r이 −0.6이라면 "시간이 지날수록 발라드 비중이 낮아지는 추세"로 읽을 수 있고,
+댄스/팝의 r이 +0.7 이상이라면 "최근으로 올수록 댄스·팝이 차트를 점유하는 비중이 커지고 있다"는 의미입니다.
+            """
+        )
+
 
 # ============================================================
 # 🎮 가사 퀴즈 게임
@@ -901,9 +923,9 @@ elif page == "🎮 가사 퀴즈 게임":
     lyrics_db = [
         {"lyrics": "팔랑귀 팔랑귀 (that's red-red) 눈치나 살피기 (that's red-red)", "artist": "CORTIS (코르티스)", "title": "REDRED"},
         {"lyrics": "Who's your bias? I'm your bias!", "artist": "아일릿(ILLIT)", "title": "It's Me"},
-        {"lyrics": "지치고 병든 나그네여 우 외톨이 나그네여", "artist": "AKMU (악뮤)", "title": "소문의 낙원"},
+        {"lyrics": "지치고 병든 나그네여 우 외톨이 나그네여", "artist": "AKMU (악동뮤지션)", "title": "소문의 낙원"},
         {"lyrics": "Till the morning 그렇게 아침이 밝아오네 잊으려 누웠는데", "artist": "아이오아이 (I.O.I)", "title": "갑자기"},
-        {"lyrics": "햇빛 뒤에 그늘이 있는 건 사랑스러운 모습이야", "artist": "AKMU (악뮤)", "title": "기쁨, 슬픔, 아름다운 마음"},
+        {"lyrics": "햇빛 뒤에 그늘이 있는 건 사랑스러운 모습이야", "artist": "AKMU (악동뮤지션)", "title": "기쁨, 슬픔, 아름다운 마음"},
         {"lyrics": "Oh oh 살짝쿵 Oh oh 느낌 왔지", "artist": "YENA (최예나)", "title": "캐치 캐치"},
         {"lyrics": "아 뭐가 그리 샘이 났길래 그토록 휘몰아쳤던가", "artist": "한로로", "title": "사랑하게 될 거야"},
         {"lyrics": "커진 심장 소릴 들어봐 영원히 기억될 이 순간", "artist": "NMIXX", "title": "Heavy Serenade"},
@@ -928,16 +950,15 @@ elif page == "🎮 가사 퀴즈 게임":
 
     if st.button("🎲 새 문제 출제", key="lyrics_new"):
         q = random.choice(lyrics_db)
-        correct = f"{q['artist']} - {q['title']}"
         wrong_pool = [s for s in lyrics_db if s["title"] != q["title"]]
-        wrong_choices = [f"{s['artist']} - {s['title']}" for s in random.sample(wrong_pool, min(3, len(wrong_pool)))]
-        choices = [correct] + wrong_choices
+        wrong_titles = [s["title"] for s in random.sample(wrong_pool, min(3, len(wrong_pool)))]
+        choices = [q["title"]] + wrong_titles
         random.shuffle(choices)
         st.session_state.lyrics_q = {
             "lyrics": q["lyrics"],
             "artist_chosung": _get_chosung(q["artist"]),
             "answer_title": q["title"],
-            "answer": correct,
+            "answer": f"{q['artist']} - {q['title']}",
             "choices": choices
         }
         st.session_state.pop("last_correct", None)
@@ -985,15 +1006,15 @@ elif page == "🎮 가사 퀴즈 게임":
         else:
             st.caption("🎵 이 곡은 YouTube 데이터가 없어 음악 힌트를 제공할 수 없습니다.")
 
-        choice = st.radio("가수와 곡 제목은?", lq["choices"], key="lyrics_choice")
+        choice = st.radio("곡 제목은?", lq["choices"], key="lyrics_choice")
 
         if st.button("정답 확인", key="lyrics_check"):
             # 같은 문제를 중복 채점하지 않기 위해 answered 플래그 활용
             already = st.session_state.get("last_answered_q", "")
-            if already != lq["answer"] + str(lq["choices"]):
-                st.session_state.last_answered_q = lq["answer"] + str(lq["choices"])
+            if already != lq["answer_title"] + str(lq["choices"]):
+                st.session_state.last_answered_q = lq["answer_title"] + str(lq["choices"])
                 st.session_state.quiz_total += 1
-                if choice == lq["answer"]:
+                if choice == lq["answer_title"]:
                     st.success(f"🎉 정답! **{lq['answer']}**")
                     st.session_state.quiz_score += 1
                     update_quiz_score(nickname)   # DB 저장
