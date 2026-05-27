@@ -625,7 +625,7 @@ elif page == "🔥 팬덤 vs 대중성":
     else:
         st.subheader("📺 YouTube 좋아요 vs 멜론 순위")
         df_yt_plot = (
-            df_yt[~df_yt["title"].str.contains("봄날|Dynamite", na=False)]
+            df_yt[~df_yt["title"].str.contains("Dynamite", na=False)]
             .nlargest(10, "like_count")
             .copy()
         )
