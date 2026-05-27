@@ -633,6 +633,15 @@ elif page == "🔥 팬덤 vs 대중성":
                           "YouTube 좋아요 수 TOP 10 (붉을수록 좋아요 많음)")
         st.plotly_chart(fig, use_container_width=True)
 
+        dyn_row = df_yt[df_yt["title"].str.contains("Dynamite", na=False)]
+        if not dyn_row.empty:
+            dyn_likes = int(dyn_row.iloc[0]["like_count"])
+            dyn_rank  = int(dyn_row.iloc[0]["rank"])
+            st.caption(
+                f"※ BTS - Dynamite ({dyn_rank}위): 좋아요 {dyn_likes:,}개 "
+                "— 다른 곡들과 차이가 너무 커 차트에서 제외"
+            )
+
         st.markdown("""
         **해석:**
         - **좋아요 多 + 순위 高** → 👑 팬덤 + 대중성 모두 갖춘 곡
