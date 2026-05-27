@@ -624,9 +624,13 @@ elif page == "🔥 팬덤 vs 대중성":
             st.info("좋아요 데이터가 수집되지 않았습니다.")
     else:
         st.subheader("📺 YouTube 좋아요 vs 멜론 순위")
-        df_yt_plot = df_yt[~df_yt["title"].str.contains("봄날", na=False)].copy()
+        df_yt_plot = (
+            df_yt[~df_yt["title"].str.contains("봄날|Dynamite", na=False)]
+            .nlargest(10, "like_count")
+            .copy()
+        )
         fig = _hbar_likes(df_yt_plot, "like_count", "YouTube 좋아요 수",
-                          "YouTube 좋아요 수 (순위 높은 순, 붉을수록 좋아요 많음)")
+                          "YouTube 좋아요 수 TOP 10 (붉을수록 좋아요 많음)")
         st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("""
