@@ -787,7 +787,7 @@ elif page == "🎵 장르·계절 분류":
 
     _show_png(tab1, "📅 월별 장르 비율")
 
-    # 연월 선택 파이차트
+    # 연월 선택 파이차트 (tab1)
     with tab1:
         df_m = load_monthly()
         if not df_m.empty and "genre" in df_m.columns and "year_month" in df_m.columns:
@@ -811,7 +811,12 @@ elif page == "🎵 장르·계절 분류":
             else:
                 st.info("해당 월 데이터가 없습니다.")
 
-            # ── 계절별 통합 파이차트 ──────────────────────────
+    _show_png(tab2, "🌸 계절별 장르 비율")
+
+    # 계절별 통합 파이차트 (tab2)
+    with tab2:
+        df_m2 = load_monthly()
+        if not df_m2.empty and "genre" in df_m2.columns and "year_month" in df_m2.columns:
             st.markdown("---")
             st.subheader("🌸 계절별 장르 비율 (파이차트)")
 
@@ -822,7 +827,7 @@ elif page == "🎵 장르·계절 분류":
                 if m in (9, 10, 11): return "가을 🍂"
                 return "겨울 ❄️"
 
-            df_s = df_m.copy()
+            df_s = df_m2.copy()
             df_s["month"] = df_s["year_month"].astype(str).str[4:6].astype(int)
             df_s["season"] = df_s["month"].apply(_month_to_season)
 
@@ -853,10 +858,7 @@ elif page == "🎵 장르·계절 분류":
                 "예를 들어 여름에 댄스·팝 비중이 높아지고, 겨울에 발라드 비중이 높아지는 패턴이 나타난다면 "
                 "계절이 음원 소비 취향에 영향을 준다는 근거가 됩니다."
             )
-        else:
-            pass
 
-    _show_png(tab2, "🌸 계절별 장르 비율")
     _show_png(tab3, "🔗 Pearson 상관계수")
 
 
