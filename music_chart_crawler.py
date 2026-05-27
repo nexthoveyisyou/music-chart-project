@@ -1013,11 +1013,12 @@ def save_to_mariadb(df_chart, df_weekly, df_youtube, db_config):
         df_weekly_insert.to_sql("weekly_rank", con=engine, if_exists="append", index=False, method="multi", chunksize=100)
         print(f"  ✅ weekly_rank: {len(df_weekly)}건 (교체 저장)")
     if not df_youtube.empty:
+        ranks = tuple(int(r) for r in df_youtube["rank"].tolist())
         with engine.connect() as conn:
-            conn.execute(text("TRUNCATE TABLE youtube_stats"))
+            conn.execute(text(f"DELETE FROM youtube_stats WHERE `rank` IN {ranks}"))
             conn.commit()
         df_youtube.to_sql("youtube_stats", con=engine, if_exists="append", index=False, method="multi", chunksize=100)
-        print(f"  ✅ youtube_stats: {len(df_youtube)}건 (교체 저장)")
+        print(f"  ✅ youtube_stats: {len(df_youtube)}건 (TOP10 교체 저장, 나머지 유지)")
 
     engine.dispose()
 
