@@ -1,5 +1,6 @@
 # DB 인증 정보 (절대 업로드 금지)
 .streamlit/secrets.toml
+aiven_secret.py
 
 # 크롤링 결과 데이터 파일 (자동 생성)
 music_chart_*.csv

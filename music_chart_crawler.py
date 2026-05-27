@@ -771,6 +771,12 @@ def analyze_and_predict_weekly(df_weekly, output_path="weekly_prediction.png"):
 
     n_pred = 4
     fig, ax = plt.subplots(figsize=(16, 8))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    plt.rcParams["text.color"] = "black"
+    plt.rcParams["axes.labelcolor"] = "black"
+    plt.rcParams["xtick.color"] = "black"
+    plt.rcParams["ytick.color"] = "black"
     colors = plt.cm.tab10(np.linspace(0, 1, 10))
 
     for i, song in enumerate(top10):
@@ -792,12 +798,12 @@ def analyze_and_predict_weekly(df_weekly, output_path="weekly_prediction.png"):
 
     # 실제/예측 구분선
     divider_x = n_actual - 0.5
-    ax.axvline(x=divider_x, color="gray", linestyle="--", linewidth=1.5, alpha=0.5)
+    ax.axvline(x=divider_x, color="black", linestyle="--", linewidth=1.8, alpha=0.7)
     ylim = ax.get_ylim()
-    ax.text(divider_x - 0.15, ylim[0] + 2, "← 실제", fontsize=9, color="gray",
-            ha="right", va="bottom")
-    ax.text(divider_x + 0.15, ylim[0] + 2, "예측 →", fontsize=9, color="gray",
-            ha="left", va="bottom")
+    ax.text(divider_x - 0.15, ylim[0] + 2, "← 실제", fontsize=10, color="black",
+            ha="right", va="bottom", fontweight="bold")
+    ax.text(divider_x + 0.15, ylim[0] + 2, "예측 →", fontsize=10, color="black",
+            ha="left", va="bottom", fontweight="bold")
 
     # X축 레이블 생성 (실제 8주 + 예측 4주)
     all_labels = list(week_labels)
@@ -818,15 +824,21 @@ def analyze_and_predict_weekly(df_weekly, output_path="weekly_prediction.png"):
             all_labels.append(f"예측+{j}주")
 
     ax.set_xticks(range(n_actual + n_pred))
-    ax.set_xticklabels(all_labels, rotation=45, ha="right", fontsize=8)
+    ax.set_xticklabels(all_labels, rotation=45, ha="right", fontsize=10, color="black")
     ax.invert_yaxis()
     ax.set_ylim(100.5, 0.5)
     ax.set_title("주간 순위 변동 예측 — 변동폭 상위 10곡\n실선: 실제 8주  |  점선: ML 예측 4주",
-                 fontsize=14, fontweight="bold")
-    ax.set_xlabel("주차", fontsize=11)
-    ax.set_ylabel("순위", fontsize=11)
-    ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), fontsize=8, title="곡명")
-    ax.grid(True, linestyle="--", alpha=0.3)
+                 fontsize=14, fontweight="bold", color="black")
+    ax.set_xlabel("주차", fontsize=12, color="black")
+    ax.set_ylabel("순위", fontsize=12, color="black")
+    ax.tick_params(axis="both", labelsize=10, colors="black")
+    ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), fontsize=9, title="곡명",
+              labelcolor="black", title_fontsize=10)
+    ax.grid(True, linestyle="-", linewidth=0.8, color="black", alpha=0.45)
+    ax.spines["top"].set_color("black")
+    ax.spines["bottom"].set_color("black")
+    ax.spines["left"].set_color("black")
+    ax.spines["right"].set_color("black")
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close()
@@ -1027,7 +1039,7 @@ def save_to_mariadb(df_chart, df_weekly, df_youtube, db_config):
 # 14. 메인 실행
 # ============================================================
 if __name__ == "__main__":
-    YOUTUBE_API_KEY = "AIzaSyBgIjK7mHHWlw5jYDf1yypmzyhE1bT92RA"
+    YOUTUBE_API_KEY = "AIzaSyBOcRfZtYueg-PsyL30IS-6ei5LtaQ0jJw"
 
     # ---- 실시간 크롤링 (멜론 + 벅스 + YouTube) ----
     df_chart, _, df_youtube = crawl_all(youtube_api_key=YOUTUBE_API_KEY)
@@ -1044,10 +1056,14 @@ if __name__ == "__main__":
     }
     save_to_mariadb(df_chart, df_weekly, df_youtube, local_config)
 
+    try:
+        from aiven_secret import AIVEN_PASSWORD as _aiven_pw
+    except ImportError:
+        _aiven_pw = os.environ.get("AIVEN_PASSWORD", "")
     aiven_config = {
         "host": "mysql-22039057-musicproject1.c.aivencloud.com",
         "port": 25918, "user": "avnadmin",
-        "password": os.environ.get("AIVEN_PASSWORD", ""),
+        "password": _aiven_pw,
         "database": "music_chart", "ssl": True
     }
     save_to_mariadb(df_chart, df_weekly, df_youtube, aiven_config)
