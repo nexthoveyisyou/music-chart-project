@@ -266,7 +266,7 @@ except Exception as e:
         df_yt = pd.DataFrame()
         st.warning("⚠️ DB 연결 실패 → CSV에서 로드")
     else:
-        st.error("❌ 데이터 없음. python music_chart_crawler.py를 먼저 실행하세요!")
+        st.error("❌ 데이터가 없습니다. 잠시 후 다시 시도해 주세요.")
         st.stop()
 
 # weekly_rank 최신 주차 likes → chart_data의 likes 컬럼에 반영
@@ -313,25 +313,7 @@ page = st.sidebar.radio("메뉴", [
     "📋 전체 데이터"
 ])
 
-# 사이드바 — 데이터 최신화 안내
 st.sidebar.divider()
-with st.sidebar.expander("🔄 데이터 업데이트 방법"):
-    st.markdown("""
-**자동 업데이트는 기본적으로 비활성화** 되어 있습니다.
-
-데이터를 최신으로 갱신하려면:
-```
-python music_chart_crawler.py
-```
-를 직접 실행하거나, 아래 명령으로
-**Windows 작업 스케줄러**에 등록하세요.
-```
-schtasks /create /tn "MusicChartCrawl" ^
-  /tr "python C:\\...\\music_chart_crawler.py" ^
-  /sc monthly /d 1 /st 06:00
-```
-Streamlit 캐시는 **5분** 간격으로 자동 갱신됩니다.
-""")
 
 if st.sidebar.button("🗑️ 캐시 초기화 (즉시 갱신)"):
     st.cache_data.clear()
@@ -423,7 +405,7 @@ elif page == "📈 4주 순위 예측":
     st.title("📈 멜론 주간 순위 기반 4주 예측")
 
     if df_weekly.empty:
-        st.warning("⚠️ 주간 순위 데이터가 없습니다. 크롤링을 먼저 실행하세요.")
+        st.warning("⚠️ 주간 순위 데이터가 없습니다.")
         st.stop()
 
     # 수집된 주차 수 확인
@@ -605,7 +587,7 @@ elif page == "🔥 팬덤 vs 대중성":
         return fig
 
     if df_yt.empty:
-        st.warning("⚠️ YouTube 데이터가 없습니다. crawler에 YouTube API 키를 설정하고 다시 크롤링하세요.")
+        st.warning("⚠️ YouTube 데이터가 없습니다.")
 
         st.subheader("💡 멜론 좋아요 수 vs 순위")
         melon = df[df["source"] == "melon"].copy()
@@ -683,8 +665,7 @@ elif page == "📺 YouTube MV 탐색":
     st.title("📺 YouTube 뮤직비디오 탐색")
 
     if df_yt.empty:
-        st.warning("⚠️ YouTube 데이터가 없습니다. 크롤러를 실행하면 자동으로 수집됩니다.")
-        st.info("💡 `python music_chart_crawler.py` 실행 후 다시 확인하세요.")
+        st.warning("⚠️ YouTube 데이터가 없습니다.")
         st.stop()
 
     # 멜론 차트 순위 기준으로 곡 목록 구성
@@ -781,7 +762,7 @@ elif page == "🎵 장르·계절 분류":
                                   "fig5_season_top_bottom_genres.png"),
         "🔗 Pearson 상관계수":   "fig4_genre_monthly_trend_r.png",
     }
-    _WARN = "PNG 파일이 없습니다. `python music_chart_crawler.py`를 실행하면 자동 생성됩니다."
+    _WARN = "그래프 데이터가 없습니다."
 
     tab1, tab2, tab3 = st.tabs(list(_FIG_FILES.keys()))
 
