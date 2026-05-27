@@ -759,6 +759,33 @@ elif page == "🎵 장르·계절 분류":
                 st.warning(_WARN)
 
     _show_png(tab1, "📅 월별 장르 비율")
+
+    # 연월 선택 파이차트
+    with tab1:
+        df_m = load_monthly()
+        if not df_m.empty and "genre" in df_m.columns and "year_month" in df_m.columns:
+            st.markdown("---")
+            st.subheader("🥧 연월별 장르 비율 (파이차트)")
+
+            months = sorted(df_m["year_month"].astype(str).unique(), reverse=True)
+            selected_month = st.selectbox("연월 선택", months, index=0,
+                                          format_func=lambda x: f"{x[:4]}년 {x[4:6]}월")
+
+            df_pie = (df_m[df_m["year_month"].astype(str) == selected_month]
+                      .groupby("genre").size().reset_index(name="count"))
+
+            if not df_pie.empty:
+                import plotly.express as px
+                fig = px.pie(df_pie, names="genre", values="count",
+                             title=f"{selected_month[:4]}년 {selected_month[4:6]}월 장르 분포",
+                             hole=0.3)
+                fig.update_traces(textposition="inside", textinfo="percent+label")
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("해당 월 데이터가 없습니다.")
+        else:
+            pass
+
     _show_png(tab2, "🌸 계절별 장르 비율")
     _show_png(tab3, "📊 계절×장르 히트맵")
     _show_png(tab4, "🔗 Pearson 상관계수")

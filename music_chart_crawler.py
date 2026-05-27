@@ -300,30 +300,47 @@ def get_youtube_stats(song_list, api_key):
 
     seen = set()
     unique_songs = []
-    for song in song_list:
+    for song in sorted(song_list, key=lambda x: x["rank"]):
         key = (song["title"], song["artist"])
         if key not in seen:
             seen.add(key)
             unique_songs.append(song)
+        if len(unique_songs) >= 10:
+            break
 
     for song in unique_songs:
         query = f"{song['title']} {song['artist']} MV"
         try:
             search = youtube.search().list(
-                q=query, part="id,snippet", maxResults=1, type="video"
+                q=query, part="id,snippet", maxResults=5, type="video"
             ).execute()
 
             if not search["items"]:
                 print(f"  ⏭️  {song['title']} - 검색 결과 없음")
                 continue
 
-            vid = search["items"][0]["id"]["videoId"]
-            vtitle = search["items"][0]["snippet"]["title"]
-
             mv_keywords = ["mv", "m/v", "music video", "뮤직비디오", "official video"]
-            if not any(kw in vtitle.lower() for kw in mv_keywords):
-                print(f"  ⏭️  {song['title']} - MV 없음 (제외): {vtitle[:40]}")
-                continue
+            vid, vtitle = None, None
+            for item in search["items"]:
+                t = item["snippet"]["title"]
+                if any(kw in t.lower() for kw in mv_keywords):
+                    vid = item["id"]["videoId"]
+                    vtitle = t
+                    break
+
+            if vid is None:
+                # 공식 MV 없음 → 조회수 가장 높은 영상으로 대체
+                fallback = youtube.search().list(
+                    q=f"{song['title']} {song['artist']}",
+                    part="id,snippet", maxResults=1,
+                    type="video", order="viewCount"
+                ).execute()
+                if not fallback["items"]:
+                    print(f"  ⏭️  {song['title']} - 대체 영상도 없음")
+                    continue
+                vid = fallback["items"][0]["id"]["videoId"]
+                vtitle = fallback["items"][0]["snippet"]["title"]
+                print(f"  🔄 {song['title']} - MV 없어 최다조회 영상 사용: {vtitle[:40]}")
 
             stats_res = youtube.videos().list(part="statistics", id=vid).execute()
             if not stats_res["items"]:
@@ -709,9 +726,9 @@ def load_weekly_from_csv(csv_path="weekly_rank.csv"):
         return pd.DataFrame()
     try:
         try:
-            df = pd.read_csv(csv_path, encoding="utf-8-sig")
+            df = pd.read_csv(csv_path, encoding="utf-8-sig", escapechar="\\")
         except UnicodeDecodeError:
-            df = pd.read_csv(csv_path, encoding="cp949")
+            df = pd.read_csv(csv_path, encoding="cp949", escapechar="\\")
         print(f"  ✅ {csv_path} 로드 완료: {len(df)}건 / {df['week_label'].nunique()}주")
         return df
     except Exception as e:
@@ -983,18 +1000,24 @@ def save_to_mariadb(df_chart, df_weekly, df_youtube, db_config):
                 conn.execute(text(f"ALTER TABLE `{table}` ADD COLUMN `{col}` {col_def}"))
         conn.commit()
 
+    with engine.connect() as conn:
+        conn.execute(text("TRUNCATE TABLE chart_data"))
+        conn.commit()
     df_chart.to_sql("chart_data", con=engine, if_exists="append", index=False, method="multi", chunksize=100)
-    print(f"  ✅ chart_data: {len(df_chart)}건")
+    print(f"  ✅ chart_data: {len(df_chart)}건 (교체 저장)")
     if not df_weekly.empty:
-        # 주간 데이터는 매 실행마다 최신 데이터로 교체 (누적 방지)
         with engine.connect() as conn:
             conn.execute(text("TRUNCATE TABLE weekly_rank"))
             conn.commit()
-        df_weekly.to_sql("weekly_rank", con=engine, if_exists="append", index=False, method="multi", chunksize=100)
+        df_weekly_insert = df_weekly.drop(columns=["id"], errors="ignore")
+        df_weekly_insert.to_sql("weekly_rank", con=engine, if_exists="append", index=False, method="multi", chunksize=100)
         print(f"  ✅ weekly_rank: {len(df_weekly)}건 (교체 저장)")
     if not df_youtube.empty:
+        with engine.connect() as conn:
+            conn.execute(text("TRUNCATE TABLE youtube_stats"))
+            conn.commit()
         df_youtube.to_sql("youtube_stats", con=engine, if_exists="append", index=False, method="multi", chunksize=100)
-        print(f"  ✅ youtube_stats: {len(df_youtube)}건")
+        print(f"  ✅ youtube_stats: {len(df_youtube)}건 (교체 저장)")
 
     engine.dispose()
 
@@ -1003,7 +1026,7 @@ def save_to_mariadb(df_chart, df_weekly, df_youtube, db_config):
 # 14. 메인 실행
 # ============================================================
 if __name__ == "__main__":
-    YOUTUBE_API_KEY = "AIzaSyARmDkqalzAT5wGW2ffg6WVPxxxuntscGo"
+    YOUTUBE_API_KEY = "AIzaSyBgIjK7mHHWlw5jYDf1yypmzyhE1bT92RA"
 
     # ---- 실시간 크롤링 (멜론 + 벅스 + YouTube) ----
     df_chart, _, df_youtube = crawl_all(youtube_api_key=YOUTUBE_API_KEY)
@@ -1023,7 +1046,7 @@ if __name__ == "__main__":
     aiven_config = {
         "host": "mysql-22039057-musicproject1.c.aivencloud.com",
         "port": 25918, "user": "avnadmin",
-        "password": "your_aiven_password_here",
+        "password": os.environ.get("AIVEN_PASSWORD", ""),
         "database": "music_chart", "ssl": True
     }
     save_to_mariadb(df_chart, df_weekly, df_youtube, aiven_config)
