@@ -468,7 +468,7 @@ elif page == "📈 4주 순위 예측":
             if len(song_weekly) < 1:
                 continue
 
-            ranks = song_weekly["rank"].values[::-1]   # 과거→현재
+            ranks = song_weekly["rank"].values   # ascending=False 정렬 → 이미 과거→현재
 
             # ---- ML 예측 ----
             predicted, method = ml_predict_ranks(
@@ -522,11 +522,11 @@ elif page == "📈 4주 순위 예측":
             rt = df[(df["source"] == "melon") & (df["title"] == song_title)]
             if sw.empty and rt.empty:
                 continue
-            current = int(sw.iloc[-1]["rank"]) if not sw.empty else int(rt.iloc[0]["rank"])
+            current = int(sw.iloc[0]["rank"]) if not sw.empty else int(rt.iloc[0]["rank"])
             method = pred_methods.get(song_title, "-")
 
             ranks_arr = sw["rank"].values if not sw.empty else np.array([current])
-            last_change = ranks_arr[-1] - ranks_arr[-2] if len(ranks_arr) >= 2 else 0
+            last_change = ranks_arr[0] - ranks_arr[1] if len(ranks_arr) >= 2 else 0
 
             if last_change > 10:
                 emoji, trend_desc = "📉", "급락"
