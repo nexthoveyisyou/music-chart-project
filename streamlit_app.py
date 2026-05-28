@@ -526,15 +526,21 @@ elif page == "📈 4주 순위 예측":
             method = pred_methods.get(song_title, "-")
 
             ranks_arr = sw["rank"].values if not sw.empty else np.array([current])
-            last_change = ranks_arr[0] - ranks_arr[1] if len(ranks_arr) >= 2 else 0
+            # 최근 4주 평균 기울기로 판단 (1주 변화만 보면 평탄 구간에서 오류 발생)
+            n = min(len(ranks_arr), 4)
+            if n >= 2:
+                recent = ranks_arr[:n][::-1]  # 오래된→최근 순
+                avg_change = float(np.mean(np.diff(recent)))
+            else:
+                avg_change = 0
 
-            if last_change > 10:
+            if avg_change > 8:
                 emoji, trend_desc = "📉", "급락"
-            elif last_change > 1:
+            elif avg_change > 1:
                 emoji, trend_desc = "📉", "하락 중"
-            elif abs(last_change) <= 1:
+            elif abs(avg_change) <= 1:
                 emoji, trend_desc = "➡️", "정체"
-            elif last_change > -4:
+            elif avg_change > -5:
                 emoji, trend_desc = "📈", "상승 추세"
             else:
                 emoji, trend_desc = "🚀", "급상승"
