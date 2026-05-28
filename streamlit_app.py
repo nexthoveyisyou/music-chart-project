@@ -522,7 +522,7 @@ elif page == "📈 4주 순위 예측":
             rt = df[(df["source"] == "melon") & (df["title"] == song_title)]
             if sw.empty and rt.empty:
                 continue
-            current = int(sw.iloc[0]["rank"]) if not sw.empty else int(rt.iloc[0]["rank"])
+            current = int(sw.iloc[-1]["rank"]) if not sw.empty else int(rt.iloc[0]["rank"])
             method = pred_methods.get(song_title, "-")
 
             ranks_arr = sw["rank"].values if not sw.empty else np.array([current])
