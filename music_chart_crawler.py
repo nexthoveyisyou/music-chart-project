@@ -496,16 +496,20 @@ def _set_korean_font():
     plt.rcParams["axes.unicode_minus"] = False
 
 
-def _calc_monthly_pct(df, top_n=8):
-    top_genres = df["genre"].value_counts().index[:top_n].tolist()
-    mg = df.groupby(["year_month", "genre"]).size().reset_index(name="count")
-    mg = mg.merge(df.groupby("year_month").size().reset_index(name="total"), on="year_month")
+_MAIN_GENRES = ["댄스", "발라드", "록"]
+
+def _calc_monthly_pct(df):
+    df2 = df.copy()
+    df2["genre"] = df2["genre"].apply(lambda g: g if g in _MAIN_GENRES else "기타")
+    mg = df2.groupby(["year_month", "genre"]).size().reset_index(name="count")
+    mg = mg.merge(df2.groupby("year_month").size().reset_index(name="total"), on="year_month")
     mg["pct"] = mg["count"] / mg["total"] * 100
     mg["month"] = mg["year_month"].map(lambda x: int(x[4:6]))
     mg["season"] = mg["month"].map(_month_to_season)
     ym_sorted = sorted(mg["year_month"].unique())
     mg["month_idx"] = mg["year_month"].map({ym: i + 1 for i, ym in enumerate(ym_sorted)})
-    return mg, top_genres
+    simplified_genres = [g for g in _MAIN_GENRES if g in mg["genre"].unique()] + ["기타"]
+    return mg, simplified_genres
 
 
 def _calc_season_pct(df):
@@ -535,9 +539,9 @@ def _calc_season_r(mg, genres):
 # ============================================================
 # 11. 시각화 (그래프 5종)
 # ============================================================
-def plot_genre_season(df, top_n=8):
+def plot_genre_season(df):
     _set_korean_font()
-    mg, top_genres = _calc_monthly_pct(df, top_n)
+    mg, top_genres = _calc_monthly_pct(df)
     sg = _calc_season_pct(df)
     r_df = _calc_season_r(mg, top_genres)
     saved = []
@@ -1101,4 +1105,4 @@ if __name__ == "__main__":
         print(f"💾 월간 데이터 저장: {DATA_FILE}")
 
     print(f"\n📊 월간 수집: {len(df_monthly)}건 / {df_monthly['year_month'].nunique()}개월")
-    plot_genre_season(df_monthly, top_n=8)
+    plot_genre_season(df_monthly)
