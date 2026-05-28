@@ -240,7 +240,7 @@ def ml_predict_ranks(song_title: str, current_rank: float,
         for _ in range(4):
             last = float(np.clip(last + weekly_slope, 1, 100))
             predicted.append(round(last))
-        return predicted, "주간 추세"
+        return predicted, "주간 변화량 가중평균"
 
     # ── 방법 3: rank 구간별 자연 감쇠 ───────────────────────
     decay = 0.3 if current_rank <= 5 else 0.7 if current_rank <= 20 else 1.5
@@ -526,16 +526,18 @@ elif page == "📈 4주 순위 예측":
             method = pred_methods.get(song_title, "-")
 
             ranks_arr = sw["rank"].values if not sw.empty else np.array([current])
-            last_change = ranks_arr[0] - ranks_arr[1] if len(ranks_arr) >= 2 else 0
+            last_change = ranks_arr[-1] - ranks_arr[-2] if len(ranks_arr) >= 2 else 0
 
-            if last_change < -3:
-                emoji, trend_desc = "🚀", "급상승"
-            elif last_change < 0:
-                emoji, trend_desc = "📈", "상승 추세"
+            if last_change > 10:
+                emoji, trend_desc = "📉", "급락"
+            elif last_change > 1:
+                emoji, trend_desc = "📉", "하락 중"
             elif abs(last_change) <= 1:
                 emoji, trend_desc = "➡️", "정체"
+            elif last_change > -4:
+                emoji, trend_desc = "📈", "상승 추세"
             else:
-                emoji, trend_desc = "📉", "하락 중"
+                emoji, trend_desc = "🚀", "급상승"
 
             st.write(f"{emoji} **{song_title}** (현재 {current}위) | {trend_desc} | 예측 방법: _{method}_")
 
@@ -1171,5 +1173,5 @@ elif page == "📋 전체 데이터":
     st.write(f"총 {len(filtered)}건")
     st.dataframe(filtered, use_container_width=True, hide_index=True)
 
-    csv = filtered.to_csv(index=False, encoding="utf-8-sig")
-    st.download_button("📥 CSV 다운로드", csv, "chart_filtered.csv", "text/csv")
+    csv = filtered.to_csv(index=False).encode("utf-8-sig")
+    st.download_button("📥 CSV 다운로드", csv, "chart_filtered.csv", "text/csv; charset=utf-8-sig")
